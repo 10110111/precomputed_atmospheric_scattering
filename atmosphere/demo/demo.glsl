@@ -247,6 +247,24 @@ shadow volume of the sphere, because they are needed to get the aerial
 perspective for the sphere and the planet:
 */
 
+vec3 dither(vec3 c)
+{
+    const float bayerPattern[] = float[](
+        0,  32,  8, 40,  2, 34, 10, 42,  /* 8x8 Bayer ordered dithering  */
+        48, 16, 56, 24, 50, 18, 58, 26,  /* pattern.  Each input pixel   */
+        12, 44,  4, 36, 14, 46,  6, 38,  /* is scaled to the 0..63 range */
+        60, 28, 52, 20, 62, 30, 54, 22,  /* before looking in this table */
+        3,  35, 11, 43,  1, 33,  9, 41,  /* to determine the action.     */
+        51, 19, 59, 27, 49, 17, 57, 25,
+        15, 47,  7, 39, 13, 45,  5, 37,
+        63, 31, 55, 23, 61, 29, 53, 21);
+    float bayer=bayerPattern[int(mod(gl_FragCoord.x,8)+8*mod(gl_FragCoord.y,8))]/64;
+    vec3 rgb=c*255;
+    vec3 head=floor(rgb);
+    vec3 tail=fract(rgb);
+    return (head+step(bayer,tail))/255;
+}
+
 void main() {
   // Normalized view direction vector.
   vec3 view_direction = normalize(view_ray);
@@ -382,6 +400,6 @@ the scene:
   radiance = mix(radiance, ground_radiance, ground_alpha);
   radiance = mix(radiance, sphere_radiance, sphere_alpha);
   color.rgb = 
-      pow(vec3(1.0) - exp(-radiance / white_point * exposure), vec3(1.0 / 2.2));
+      dither(pow(vec3(1.0) - exp(-radiance / white_point * exposure), vec3(1.0 / 2.2)));
   color.a = 1.0;
 }
