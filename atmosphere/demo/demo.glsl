@@ -258,7 +258,7 @@ vec3 dither(vec3 c)
         51, 19, 59, 27, 49, 17, 57, 25,
         15, 47,  7, 39, 13, 45,  5, 37,
         63, 31, 55, 23, 61, 29, 53, 21);
-    float bayer=bayerPattern[int(mod(gl_FragCoord.x,8)+8*mod(gl_FragCoord.y,8))]/64;
+    float bayer=bayerPattern[int(mod(int(gl_FragCoord.x),8)+8*mod(int(gl_FragCoord.y),8))]/64;
     vec3 rgb=c*255;
     vec3 head=floor(rgb);
     vec3 tail=fract(rgb);
