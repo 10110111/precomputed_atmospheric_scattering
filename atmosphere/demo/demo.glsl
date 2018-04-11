@@ -262,7 +262,7 @@ vec3 dither(vec3 c)
     vec3 rgb=c*255;
     vec3 head=floor(rgb);
     vec3 tail=fract(rgb);
-    return (head+step(bayer,tail))/255;
+    return (head+1-step(tail,vec3(bayer)))/255;
 }
 
 void main() {
