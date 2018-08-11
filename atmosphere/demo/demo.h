@@ -110,6 +110,7 @@ class Demo {
   double sun_zenith_angle_radians_;
   double sun_azimuth_angle_radians_;
   double exposure_;
+  double fovyDeg_;
 
   int previous_mouse_x_;
   int previous_mouse_y_;

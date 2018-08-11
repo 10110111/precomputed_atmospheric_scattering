@@ -113,7 +113,8 @@ Demo::Demo(int viewport_width, int viewport_height) :
     view_azimuth_angle_radians_(-0.1),
     sun_zenith_angle_radians_(1.3),
     sun_azimuth_angle_radians_(2.9),
-    exposure_(10.0) {
+    exposure_(10.0),
+    fovyDeg_(50) {
   glutInitWindowSize(viewport_width, viewport_height);
   window_id_ = glutCreateWindow("Atmosphere Demo");
   INSTANCES[window_id_] = this;
@@ -410,6 +411,7 @@ void Demo::HandleRedisplayEvent() const {
          << " w: white balance (currently: "
          << (do_white_balance_ ? "on" : "off") << ")\n"
          << " +/-: increase/decrease exposure (" << exposure_ << ")\n"
+         << " f/F: increase/decrease FOV(y) (" << fovyDeg_ << " deg)\n"
          << " 1-9: predefined views\n";
     text_renderer_->SetColor(1.0, 0.0, 0.0);
     text_renderer_->DrawText(help.str(), 5, 4);
@@ -427,8 +429,7 @@ interact with the atmosphere model:
 void Demo::HandleReshapeEvent(int viewport_width, int viewport_height) {
   glViewport(0, 0, viewport_width, viewport_height);
 
-  const float kFovY = 50.0 / 180.0 * kPi;
-  const float kTanFovY = tan(kFovY / 2.0);
+  const float kTanFovY = tan(fovyDeg_ * kPi/180 / 2.0);
   float aspect_ratio = static_cast<float>(viewport_width) / viewport_height;
 
   // Transform matrix from clip space to camera space (i.e. the inverse of a
@@ -468,6 +469,10 @@ void Demo::HandleKeyboardEvent(unsigned char key) {
     exposure_ *= 1.1;
   } else if (key == '-') {
     exposure_ /= 1.1;
+  } else if (key == 'f' && fovyDeg_<std::floor(180/1.02)) {
+    fovyDeg_ *= 1.02;
+  } else if (key == 'F') {
+    fovyDeg_ /= 1.02;
   } else if (key == '1') {
     SetView(9000.0, 1.47, 0.0, 1.3, 3.0, 10.0);
   } else if (key == '2') {
@@ -491,6 +496,10 @@ void Demo::HandleKeyboardEvent(unsigned char key) {
       key == 'w') {
     InitModel();
   }
+  if (key == 'f' || key == 'F') {
+    HandleReshapeEvent(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
+  }
+
 }
 
 void Demo::HandleMouseClickEvent(
