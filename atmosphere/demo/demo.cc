@@ -231,7 +231,7 @@ void Demo::InitModel() {
   constexpr double kMieAngstromAlpha = 0.0;
   constexpr double kMieAngstromBeta = 5.328e-3;
   constexpr double kMieSingleScatteringAlbedo = 0.9;
-  constexpr double kMiePhaseFunctionG = 0.8;
+  constexpr double kMiePhaseFunctionG = 0.76;
   constexpr double kGroundAlbedo = 0.1;
   const double max_sun_zenith_angle =
       (use_half_precision_ ? 102.0 : 120.0) / 180.0 * kPi;

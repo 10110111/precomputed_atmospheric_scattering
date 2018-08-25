@@ -743,7 +743,7 @@ InverseSolidAngle RayleighPhaseFunction(Number nu) {
 
 InverseSolidAngle MiePhaseFunction(Number g, Number nu) {
   InverseSolidAngle k = 3.0 / (8.0 * PI * sr) * (1.0 - g * g) / (2.0 + g * g);
-  return k * (1.0 + nu * nu) / pow(1.0 + g * g - 2.0 * g * nu, 1.5);
+  return (k * (1.0 + nu * nu) / pow(1.0 + g * g - 2.0 * g * nu, 1.5) + 1./((1.-nu)*600.+0.05)/sr)*0.904;
 }
 
 /*
