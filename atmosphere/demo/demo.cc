@@ -178,6 +178,7 @@ Demo::~Demo() {
   INSTANCES.erase(window_id_);
 }
 
+constexpr double kBottomRadius = 6360000.0;
 /*
 <p>The "real" initialization work, which is specific to our atmosphere model,
 is done in the following method. It starts with the creation of an atmosphere
@@ -223,7 +224,6 @@ void Demo::InitModel() {
   // Wavelength independent solar irradiance "spectrum" (not physically
   // realistic, but was used in the original implementation).
   constexpr double kConstantSolarIrradiance = 1.5;
-  constexpr double kBottomRadius = 6360000.0;
   constexpr double kTopRadius = 6420000.0;
   constexpr double kRayleigh = 1.24062e-6;
   constexpr double kRayleighScaleHeight = 8000.0;
@@ -348,6 +348,14 @@ because our demo app does not have any texture of its own):
   HandleReshapeEvent(glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT));
 }
 
+double getPointAltitude(double x, double y, double z)
+{
+    // Earth center coords
+    const double c[3]={0.0, 0.0, -kBottomRadius / kLengthUnitInMeters};
+    const auto distFromCenter=std::hypot(x-c[0],std::hypot(y-c[1],z-c[2]));
+    return distFromCenter-kBottomRadius / kLengthUnitInMeters;
+}
+
 /*
 <p>The scene rendering method simply sets the uniforms related to the camera
 position and to the Sun direction, and then draws a full screen quad (and
@@ -411,6 +419,13 @@ void Demo::HandleRedisplayEvent() const {
          << (do_white_balance_ ? "on" : "off") << ")\n"
          << " +/-: increase/decrease exposure (" << exposure_ << ")\n"
          << " 1-9: predefined views\n";
+    help << "\n"
+         << "Sun elevation : " << 90-sun_zenith_angle_radians_*180/M_PI << " deg\n"
+         << "Sun azimuth   : " << sun_azimuth_angle_radians_*180/M_PI << " deg\n"
+         << "View elevation: " << view_zenith_angle_radians_*180/M_PI-90 << " deg\n"
+         << "View azimuth  : " << view_azimuth_angle_radians_*180/M_PI << " deg\n"
+         << "View distance : " << view_distance_meters_/1000 << " km\n"
+         << "Camera altitude: " << getPointAltitude(model_from_view[3], model_from_view[7], model_from_view[11])*kLengthUnitInMeters/1000 << " km\n";
     text_renderer_->SetColor(1.0, 0.0, 0.0);
     text_renderer_->DrawText(help.str(), 5, 4);
   }
