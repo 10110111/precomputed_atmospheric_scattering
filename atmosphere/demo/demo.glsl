@@ -267,7 +267,7 @@ vec3 dither(vec3 c)
 
 void main() {
   // Normalized view direction vector.
-  float phi=view_ray.x*3.14159265,
+  float phi=-view_ray.x*3.14159265,
         theta=view_ray.y/2*3.14159265;
   vec3 view_direction=vec3(
                            cos(phi)*cos(theta),
