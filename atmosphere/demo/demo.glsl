@@ -267,10 +267,16 @@ vec3 dither(vec3 c)
 
 void main() {
   // Normalized view direction vector.
-  vec3 view_direction = normalize(view_ray);
+  float phi=view_ray.x*3.14159265,
+        theta=view_ray.y/2*3.14159265;
+  vec3 view_direction=vec3(
+                           cos(phi)*cos(theta),
+                           sin(phi)*cos(theta),
+                                  1*sin(theta)
+                          );
   // Tangent of the angle subtended by this fragment.
   float fragment_angular_size =
-      length(dFdx(view_ray) + dFdy(view_ray)) / length(view_ray);
+      length(dFdx(view_direction) + dFdy(view_direction));
 
   float shadow_in;
   float shadow_out;
