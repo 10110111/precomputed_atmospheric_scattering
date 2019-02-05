@@ -417,7 +417,9 @@ void Demo::HandleRedisplayEvent() const {
          << " w: white balance (currently: "
          << (do_white_balance_ ? "on" : "off") << ")\n"
          << " +/-: increase/decrease exposure (" << exposure_ << ")\n"
-         << " 1-9: predefined views\n";
+         << " 1-9: predefined views\n"
+         << " Space: lower the Sun by 1 degree\n"
+         << "     /: raise the Sun by 1 degree\n";
     help << "\n"
          << "Sun elevation : " << 90-sun_zenith_angle_radians_*180/M_PI << " deg\n"
          << "Sun azimuth   : " << sun_azimuth_angle_radians_*180/M_PI << " deg\n"
@@ -500,6 +502,14 @@ void Demo::HandleKeyboardEvent(unsigned char key) {
     SetView(2.7e6, 0.81, 0.0, 1.57, 2.0, 10.0);
   } else if (key == '9') {
     SetView(1.2e7, 0.0, 0.0, 0.93, -2.0, 10.0);
+  } else if (key == ' ') {
+      sun_zenith_angle_radians_ += 0.2*M_PI/180;
+      sun_zenith_angle_radians_ =
+          std::max(0.0, std::min(kPi, sun_zenith_angle_radians_));
+  } else if (key == '/') {
+      sun_zenith_angle_radians_ -= 0.2*M_PI/180;
+      sun_zenith_angle_radians_ =
+          std::max(0.0, std::min(kPi, sun_zenith_angle_radians_));
   }
   if (key == 's' || key == 'o' || key == 't' || key == 'p' || key == 'l' ||
       key == 'w') {
