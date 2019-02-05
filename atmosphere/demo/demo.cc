@@ -108,10 +108,10 @@ Demo::Demo(int viewport_width, int viewport_height) :
     show_help_(true),
     program_(0),
     view_distance_meters_(9000.0),
-    view_zenith_angle_radians_(1.47),
-    view_azimuth_angle_radians_(-0.1),
-    sun_zenith_angle_radians_(1.3),
-    sun_azimuth_angle_radians_(2.9),
+    view_zenith_angle_radians_(M_PI/2),
+    view_azimuth_angle_radians_(0),
+    sun_zenith_angle_radians_(0),
+    sun_azimuth_angle_radians_(0),
     exposure_(10.0) {
   glutInitWindowSize(viewport_width, viewport_height);
   window_id_ = glutCreateWindow("Atmosphere Demo");
