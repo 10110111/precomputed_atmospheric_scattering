@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
   glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 
   std::unique_ptr<Demo> demo(new Demo(0, 0));
-  demo->model().SetProgramUniforms(demo->program(), 0, 1, 2);
+  demo->model().SetProgramUniforms(demo->program(), 0, 1, 2, 3);
 
   const std::string output_dir(argv[1]);
   SaveShader(demo->model().shader(), output_dir + "atmosphere_shader.txt");
@@ -104,6 +104,13 @@ int main(int argc, char** argv) {
       atmosphere::IRRADIANCE_TEXTURE_WIDTH *
           atmosphere::IRRADIANCE_TEXTURE_HEIGHT,
       output_dir + "irradiance.dat");
+  SaveTexture(
+      GL_TEXTURE3,
+      GL_TEXTURE_3D,
+      atmosphere::SCATTERING_TEXTURE_WIDTH *
+          atmosphere::SCATTERING_TEXTURE_HEIGHT *
+          atmosphere::SCATTERING_TEXTURE_DEPTH,
+      output_dir + "mie_scattering.dat");
 
   return 0;
 }
