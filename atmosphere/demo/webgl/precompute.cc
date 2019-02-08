@@ -40,12 +40,15 @@ the OpenGL API, and are saved to disk:
 #include <GL/freeglut.h>
 
 #include <memory>
+#include <cstring>
 #include <fstream>
 
 #include "atmosphere/demo/demo.h"
 #include "atmosphere/constants.h"
 
 using atmosphere::demo::Demo;
+
+bool combinedMieAndRayleigh=false;
 
 void SaveShader(const GLuint shader, const std::string& filename) {
   GLint sourceLength;
@@ -54,6 +57,9 @@ void SaveShader(const GLuint shader, const std::string& filename) {
   GLsizei actualLength;
   std::unique_ptr<GLchar[]> buffer(new GLchar[sourceLength]);
   glGetShaderSource(shader, sourceLength, &actualLength, buffer.get());
+
+  if(std::strstr(buffer.get(),"#define COMBINED_SCATTERING_TEXTURES\n"))
+      combinedMieAndRayleigh=true;
 
   std::ofstream output_stream(filename, std::ofstream::out);
   output_stream << std::string(buffer.get());
@@ -79,7 +85,7 @@ int main(int argc, char** argv) {
   glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE);
 
   std::unique_ptr<Demo> demo(new Demo(0, 0));
-  demo->model().SetProgramUniforms(demo->program(), 0, 1, 2);
+  demo->model().SetProgramUniforms(demo->program(), 0, 1, 2, 3);
 
   const std::string output_dir(argv[1]);
   SaveShader(demo->model().shader(), output_dir + "atmosphere_shader.txt");
@@ -104,6 +110,16 @@ int main(int argc, char** argv) {
       atmosphere::IRRADIANCE_TEXTURE_WIDTH *
           atmosphere::IRRADIANCE_TEXTURE_HEIGHT,
       output_dir + "irradiance.dat");
+  if(!combinedMieAndRayleigh)
+  {
+      SaveTexture(
+          GL_TEXTURE3,
+          GL_TEXTURE_3D,
+          atmosphere::SCATTERING_TEXTURE_WIDTH *
+              atmosphere::SCATTERING_TEXTURE_HEIGHT *
+              atmosphere::SCATTERING_TEXTURE_DEPTH,
+          output_dir + "mie_scattering.dat");
+  }
 
   return 0;
 }
