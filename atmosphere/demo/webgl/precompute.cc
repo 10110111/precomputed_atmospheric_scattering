@@ -67,7 +67,10 @@ void SaveShader(const GLuint shader, const std::string& filename) {
 }
 
 void SaveTexture(const GLenum texture_unit, const GLenum texture_target,
-    const int texture_size, const std::string& filename) {
+    const int texture_width, const int texture_height, const int texture_depth,
+    const std::string& filename) {
+
+  const int texture_size=texture_width*texture_height*texture_depth;
   std::unique_ptr<float[]> pixels(new float[texture_size * 4]);
   glActiveTexture(texture_unit);
   glGetTexImage(texture_target, 0, GL_RGBA, GL_FLOAT, pixels.get());
@@ -75,6 +78,22 @@ void SaveTexture(const GLenum texture_unit, const GLenum texture_target,
   std::ofstream output_stream(
       filename, std::ofstream::out | std::ofstream::binary);
   output_stream.write((const char*) pixels.get(), texture_size * 16);
+
+  // The header goes to the end to avoid breaking the format for webgl demo
+  if(texture_target==GL_TEXTURE_2D)
+  {
+      const std::int32_t header[]={texture_width, texture_height, 2};
+      output_stream.write(reinterpret_cast<const char*>(header), sizeof header);
+  }
+  else // texture_target==GL_TEXTURE_3D
+  {
+      using namespace atmosphere;
+      const std::int32_t header[]={SCATTERING_TEXTURE_R_SIZE, SCATTERING_TEXTURE_MU_SIZE,
+                                   SCATTERING_TEXTURE_MU_S_SIZE, SCATTERING_TEXTURE_NU_SIZE,
+                                   4};
+      output_stream.write(reinterpret_cast<const char*>(header), sizeof header);
+  }
+
   output_stream.close();
 }
 
@@ -94,30 +113,32 @@ int main(int argc, char** argv) {
   SaveTexture(
       GL_TEXTURE0,
       GL_TEXTURE_2D,
-      atmosphere::TRANSMITTANCE_TEXTURE_WIDTH *
-          atmosphere::TRANSMITTANCE_TEXTURE_HEIGHT,
+      atmosphere::TRANSMITTANCE_TEXTURE_WIDTH,
+      atmosphere::TRANSMITTANCE_TEXTURE_HEIGHT,
+      1,
       output_dir + "transmittance.dat");
   SaveTexture(
       GL_TEXTURE1,
       GL_TEXTURE_3D,
-      atmosphere::SCATTERING_TEXTURE_WIDTH *
-          atmosphere::SCATTERING_TEXTURE_HEIGHT *
-          atmosphere::SCATTERING_TEXTURE_DEPTH,
+      atmosphere::SCATTERING_TEXTURE_WIDTH,
+      atmosphere::SCATTERING_TEXTURE_HEIGHT,
+      atmosphere::SCATTERING_TEXTURE_DEPTH,
       output_dir + "scattering.dat");
   SaveTexture(
       GL_TEXTURE2,
       GL_TEXTURE_2D,
-      atmosphere::IRRADIANCE_TEXTURE_WIDTH *
-          atmosphere::IRRADIANCE_TEXTURE_HEIGHT,
+      atmosphere::IRRADIANCE_TEXTURE_WIDTH,
+      atmosphere::IRRADIANCE_TEXTURE_HEIGHT,
+      1,
       output_dir + "irradiance.dat");
   if(!combinedMieAndRayleigh)
   {
       SaveTexture(
           GL_TEXTURE3,
           GL_TEXTURE_3D,
-          atmosphere::SCATTERING_TEXTURE_WIDTH *
-              atmosphere::SCATTERING_TEXTURE_HEIGHT *
-              atmosphere::SCATTERING_TEXTURE_DEPTH,
+          atmosphere::SCATTERING_TEXTURE_WIDTH,
+          atmosphere::SCATTERING_TEXTURE_HEIGHT,
+          atmosphere::SCATTERING_TEXTURE_DEPTH,
           output_dir + "mie_scattering.dat");
   }
 
