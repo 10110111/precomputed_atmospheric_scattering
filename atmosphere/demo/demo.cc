@@ -101,7 +101,7 @@ will be used to render the scene and the help messages:
 Demo::Demo(int viewport_width, int viewport_height) :
     use_constant_solar_spectrum_(false),
     use_ozone_(true),
-    use_combined_textures_(false),
+    use_combined_textures_(true),
     use_half_precision_(false),
     use_luminance_(PRECOMPUTED),
     do_white_balance_(true),
