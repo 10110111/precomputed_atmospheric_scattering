@@ -1056,6 +1056,8 @@ void Model::Precompute(
     const mat3& luminance_from_radiance,
     bool blend,
     unsigned int num_scattering_orders) {
+
+  std::cerr << "Precompute(lambdas={" << lambdas[0] << ',' << lambdas[1] << ',' << lambdas[2] << "})\n";
   // The precomputations require specific GLSL programs, for each precomputation
   // step. We create and compile them here (they are automatically destroyed
   // when this method returns, via the Program destructor).
@@ -1083,13 +1085,17 @@ void Model::Precompute(
   glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ONE, GL_ONE);
 
   // Compute the transmittance, and store it in transmittance_texture_.
+  std::cerr << " Computing transmittance... ";
   glFramebufferTexture(
       GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, transmittance_texture_, 0);
   glDrawBuffer(GL_COLOR_ATTACHMENT0);
   glViewport(0, 0, TRANSMITTANCE_TEXTURE_WIDTH, TRANSMITTANCE_TEXTURE_HEIGHT);
   compute_transmittance.Use();
   DrawQuad({}, full_screen_quad_vao_);
+  glFinish();
+  std::cerr << "done\n";
 
+  std::cerr << " Computing direct irradiance... ";
   // Compute the direct irradiance, store it in delta_irradiance_texture and,
   // depending on 'blend', either initialize irradiance_texture_ with zeros or
   // leave it unchanged (we don't want the direct irradiance in
@@ -1104,6 +1110,8 @@ void Model::Precompute(
   compute_direct_irradiance.BindTexture2d(
       "transmittance_texture", transmittance_texture_, 0);
   DrawQuad({false, blend}, full_screen_quad_vao_);
+  glFinish();
+  std::cerr << "done\n";
 
   // Compute the rayleigh and mie single scattering, store them in
   // delta_rayleigh_scattering_texture and delta_mie_scattering_texture, and
@@ -1128,15 +1136,22 @@ void Model::Precompute(
       "luminance_from_radiance", luminance_from_radiance);
   compute_single_scattering.BindTexture2d(
       "transmittance_texture", transmittance_texture_, 0);
+  std::cerr << " Computing single scattering layers... ";
   for (unsigned int layer = 0; layer < SCATTERING_TEXTURE_DEPTH; ++layer) {
+    std::cerr << layer;
     compute_single_scattering.BindInt("layer", layer);
     DrawQuad({false, false, blend, blend}, full_screen_quad_vao_);
+    glFinish();
+    if(layer+1<SCATTERING_TEXTURE_DEPTH) std::cerr << ",";
   }
+  std::cerr << "\n";
 
   // Compute the 2nd, 3rd and 4th order of scattering, in sequence.
+  std::cerr << " Computing multiple scattering...\n";
   for (unsigned int scattering_order = 2;
        scattering_order <= num_scattering_orders;
        ++scattering_order) {
+    std::cerr << "  Scattering order " << scattering_order << "\n";
     // Compute the scattering density, and store it in
     // delta_scattering_density_texture.
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -1160,11 +1175,17 @@ void Model::Precompute(
     compute_scattering_density.BindTexture2d(
         "irradiance_texture", delta_irradiance_texture, 4);
     compute_scattering_density.BindInt("scattering_order", scattering_order);
+    std::cerr << "   Computing scattering density layers... ";
     for (unsigned int layer = 0; layer < SCATTERING_TEXTURE_DEPTH; ++layer) {
+      std::cerr << layer;
       compute_scattering_density.BindInt("layer", layer);
       DrawQuad({}, full_screen_quad_vao_);
+      glFinish();
+      if(layer+1<SCATTERING_TEXTURE_DEPTH) std::cerr << ",";
     }
+    std::cerr << "\n";
 
+    std::cerr << "   Computing indirect irradiance... ";
     // Compute the indirect irradiance, store it in delta_irradiance_texture and
     // accumulate it in irradiance_texture_.
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -1186,7 +1207,9 @@ void Model::Precompute(
         "multiple_scattering_texture", delta_multiple_scattering_texture, 2);
     compute_indirect_irradiance.BindInt("scattering_order",
         scattering_order - 1);
+    glFinish();
     DrawQuad({false, true}, full_screen_quad_vao_);
+    std::cerr << "done\n";
 
     // Compute the multiple scattering, store it in
     // delta_multiple_scattering_texture, and accumulate it in
@@ -1204,11 +1227,17 @@ void Model::Precompute(
         "transmittance_texture", transmittance_texture_, 0);
     compute_multiple_scattering.BindTexture3d(
         "scattering_density_texture", delta_scattering_density_texture, 1);
+    std::cerr << "   Computing multiple scattering layers... ";
     for (unsigned int layer = 0; layer < SCATTERING_TEXTURE_DEPTH; ++layer) {
+      std::cerr << layer;
       compute_multiple_scattering.BindInt("layer", layer);
       DrawQuad({false, true}, full_screen_quad_vao_);
+      glFinish();
+      if(layer+1<SCATTERING_TEXTURE_DEPTH) std::cerr << ",";
     }
+    std::cerr << "\n";
   }
+  std::cerr << "Model::Precompute() done\n";
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, 0, 0);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, 0, 0);
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT3, 0, 0);
