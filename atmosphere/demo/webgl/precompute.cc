@@ -88,8 +88,8 @@ void SaveTexture(const GLenum texture_unit, const GLenum texture_target,
   else // texture_target==GL_TEXTURE_3D
   {
       using namespace atmosphere;
-      const std::int32_t header[]={SCATTERING_TEXTURE_R_SIZE, SCATTERING_TEXTURE_MU_SIZE,
-                                   SCATTERING_TEXTURE_MU_S_SIZE, SCATTERING_TEXTURE_NU_SIZE,
+      const std::int32_t header[]={SCATTERING_TEXTURE_MU_S_SIZE, SCATTERING_TEXTURE_MU_SIZE,
+                                   SCATTERING_TEXTURE_R_SIZE, SCATTERING_TEXTURE_NU_SIZE,
                                    4};
       output_stream.write(reinterpret_cast<const char*>(header), sizeof header);
   }

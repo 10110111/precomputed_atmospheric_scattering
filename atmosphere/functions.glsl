@@ -822,7 +822,7 @@ vec4 GetScatteringTextureUvwzFromRMuMuSNu(IN(AtmosphereParameters) atmosphere,
       max(1.0 - a / A, 0.0) / (1.0 + a), SCATTERING_TEXTURE_MU_S_SIZE);
 
   Number u_nu = (nu + 1.0) / 2.0;
-  return vec4(u_nu, u_mu_s, u_mu, u_r);
+  return vec4(u_nu, u_r, u_mu, u_mu_s);
 }
 
 /*
@@ -842,7 +842,7 @@ void GetRMuMuSNuFromScatteringTextureUvwz(IN(AtmosphereParameters) atmosphere,
       atmosphere.bottom_radius * atmosphere.bottom_radius);
   // Distance to the horizon.
   Length rho =
-      H * GetUnitRangeFromTextureCoord(uvwz.w, SCATTERING_TEXTURE_R_SIZE);
+      H * GetUnitRangeFromTextureCoord(uvwz.y, SCATTERING_TEXTURE_R_SIZE);
   r = sqrt(rho * rho + atmosphere.bottom_radius * atmosphere.bottom_radius);
 
   if (uvwz.z < 0.5) {
@@ -870,7 +870,7 @@ void GetRMuMuSNuFromScatteringTextureUvwz(IN(AtmosphereParameters) atmosphere,
   }
 
   Number x_mu_s =
-      GetUnitRangeFromTextureCoord(uvwz.y, SCATTERING_TEXTURE_MU_S_SIZE);
+      GetUnitRangeFromTextureCoord(uvwz.w, SCATTERING_TEXTURE_MU_S_SIZE);
   Length d_min = atmosphere.top_radius - atmosphere.bottom_radius;
   Length d_max = H;
   Number A =
@@ -902,15 +902,15 @@ void GetRMuMuSNuFromScatteringTextureFragCoord(
     OUT(bool) ray_r_mu_intersects_ground) {
   const vec4 SCATTERING_TEXTURE_SIZE = vec4(
       SCATTERING_TEXTURE_NU_SIZE - 1,
-      SCATTERING_TEXTURE_MU_S_SIZE,
+      SCATTERING_TEXTURE_R_SIZE,
       SCATTERING_TEXTURE_MU_SIZE,
-      SCATTERING_TEXTURE_R_SIZE);
+      SCATTERING_TEXTURE_MU_S_SIZE);
   Number frag_coord_nu =
-      floor(frag_coord.x / Number(SCATTERING_TEXTURE_MU_S_SIZE));
-  Number frag_coord_mu_s =
-      mod(frag_coord.x, Number(SCATTERING_TEXTURE_MU_S_SIZE));
+      floor(frag_coord.x / Number(SCATTERING_TEXTURE_R_SIZE));
+  Number frag_coord_r =
+      mod(frag_coord.x, Number(SCATTERING_TEXTURE_R_SIZE));
   vec4 uvwz =
-      vec4(frag_coord_nu, frag_coord_mu_s, frag_coord.y, frag_coord.z) /
+      vec4(frag_coord_nu, frag_coord_r, frag_coord.y, frag_coord.z) /
           SCATTERING_TEXTURE_SIZE;
   GetRMuMuSNuFromScatteringTextureUvwz(
       atmosphere, uvwz, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
