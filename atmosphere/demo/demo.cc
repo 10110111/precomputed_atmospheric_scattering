@@ -78,7 +78,9 @@ const char kVertexShader[] = R"(
     uniform mat4 view_from_clip;
     layout(location = 0) in vec4 vertex;
     out vec3 view_ray;
+    out vec3 position;
     void main() {
+      position=vertex.xyz;
       view_ray =
           (model_from_view * vec4((view_from_clip * vertex).xyz, 0.0)).xyz;
       gl_Position = vertex;
@@ -105,7 +107,7 @@ Demo::Demo(int viewport_width, int viewport_height) :
     use_ozone_(true),
     use_combined_textures_(true),
     use_half_precision_(false),
-    use_luminance_(PRECOMPUTED),
+    use_luminance_(APPROXIMATE),
     do_white_balance_(true),
     show_help_(true),
     program_(0),
@@ -282,7 +284,7 @@ void Demo::InitModel() {
       ozone_density, absorption_extinction, ground_albedo, max_sun_zenith_angle,
       kLengthUnitInMeters, use_luminance_ == PRECOMPUTED ? 15 : 3,
       use_combined_textures_, use_half_precision_));
-  model_->Init(10);
+  model_->Init();
 
 /*
 <p>Then, it creates and compiles the vertex and fragment shaders used to render
@@ -536,7 +538,7 @@ void Demo::HandleMouseClickEvent(
 }
 
 void Demo::HandleMouseDragEvent(int mouse_x, int mouse_y) {
-  constexpr double kScale = 500.0;
+  constexpr double kScale = 5000.0;
   if (is_ctrl_key_pressed_) {
     sun_zenith_angle_radians_ -= (previous_mouse_y_ - mouse_y) / kScale;
     sun_zenith_angle_radians_ =
