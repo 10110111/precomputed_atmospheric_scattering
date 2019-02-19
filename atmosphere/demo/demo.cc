@@ -42,6 +42,7 @@ independent of our atmosphere model. The only part which is related to it is the
 #include <glad/glad.h>
 #include <GL/freeglut.h>
 
+#include <cassert>
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -295,6 +296,10 @@ to get the final scene rendering program:
   glShaderSource(vertex_shader_, 1, &vertex_shader_source, NULL);
   glCompileShader(vertex_shader_);
 
+  GLint compile_status;
+  glGetShaderiv(vertex_shader_, GL_COMPILE_STATUS, &compile_status);
+  assert(compile_status == GL_TRUE);
+
   const std::string fragment_shader_str =
       "#version 330\n" +
       std::string(use_luminance_ != NONE ? "#define USE_LUMINANCE\n" : "") +
@@ -306,6 +311,9 @@ to get the final scene rendering program:
   glShaderSource(fragment_shader_, 1, &fragment_shader_source, NULL);
   glCompileShader(fragment_shader_);
 
+  glGetShaderiv(fragment_shader_, GL_COMPILE_STATUS, &compile_status);
+  assert(compile_status == GL_TRUE);
+
   if (program_ != 0) {
     glDeleteProgram(program_);
   }
@@ -314,6 +322,12 @@ to get the final scene rendering program:
   glAttachShader(program_, fragment_shader_);
   glAttachShader(program_, model_->shader());
   glLinkProgram(program_);
+
+  GLint link_status;
+  glGetProgramiv(program_, GL_LINK_STATUS, &link_status);
+  assert(link_status == GL_TRUE);
+  assert(glGetError() == 0);
+
   glDetachShader(program_, vertex_shader_);
   glDetachShader(program_, fragment_shader_);
   glDetachShader(program_, model_->shader());
