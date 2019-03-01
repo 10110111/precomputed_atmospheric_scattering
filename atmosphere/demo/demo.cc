@@ -238,7 +238,7 @@ void Demo::InitModel() {
   constexpr double kMiePhaseFunctionG = 0.8;
   constexpr double kGroundAlbedo = 0.0;
   const double max_sun_zenith_angle =
-      (use_half_precision_ ? 102.0 : 120.0) / 180.0 * kPi;
+      (use_half_precision_ ? 102.0 : 180.0) / 180.0 * kPi;
 
   constexpr int kNumLayers = 100;
   const auto AltitudeKm=[](int k) {
@@ -317,7 +317,7 @@ void Demo::InitModel() {
       ozone_density, absorption_extinction, ground_albedo, max_sun_zenith_angle,
       kLengthUnitInMeters, use_luminance_ == PRECOMPUTED ? 15 : 3,
       use_combined_textures_, use_half_precision_));
-  model_->Init();
+  model_->Init(10);
 
 /*
 <p>Then, it creates and compiles the vertex and fragment shaders used to render
