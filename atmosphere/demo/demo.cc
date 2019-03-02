@@ -47,6 +47,7 @@ independent of our atmosphere model. The only part which is related to it is the
 #include <cmath>
 #include <map>
 #include <stdexcept>
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -78,7 +79,9 @@ const char kVertexShader[] = R"(
     uniform mat4 view_from_clip;
     layout(location = 0) in vec4 vertex;
     out vec3 view_ray;
+    out vec3 position;
     void main() {
+      position=vertex.xyz;
       view_ray =
           (model_from_view * vec4((view_from_clip * vertex).xyz, 0.0)).xyz;
       gl_Position = vertex;
@@ -101,10 +104,10 @@ will be used to render the scene and the help messages:
 */
 
 Demo::Demo(int viewport_width, int viewport_height) :
-    use_constant_solar_spectrum_(false),
-    use_ozone_(true),
+    use_constant_solar_spectrum_(true),
+    use_ozone_(false),
     use_combined_textures_(true),
-    use_half_precision_(true),
+    use_half_precision_(false),
     use_luminance_(NONE),
     do_white_balance_(false),
     show_help_(true),
@@ -223,19 +226,26 @@ void Demo::InitModel() {
   constexpr double kMaxOzoneNumberDensity = 300.0 * kDobsonUnit / 15000.0;
   // Wavelength independent solar irradiance "spectrum" (not physically
   // realistic, but was used in the original implementation).
-  constexpr double kConstantSolarIrradiance = 1.5;
+  constexpr double kConstantSolarIrradiance = 1.0;
   constexpr double kBottomRadius = 6360000.0;
   constexpr double kTopRadius = 6420000.0;
   constexpr double kRayleigh = 1.24062e-6;
   constexpr double kRayleighScaleHeight = 8000.0;
   constexpr double kMieScaleHeight = 1200.0;
   constexpr double kMieAngstromAlpha = 0.0;
-  constexpr double kMieAngstromBeta = 5.328e-3;
+  constexpr double kMieAngstromBeta = 0;
   constexpr double kMieSingleScatteringAlbedo = 0.9;
   constexpr double kMiePhaseFunctionG = 0.8;
-  constexpr double kGroundAlbedo = 0.1;
+  constexpr double kGroundAlbedo = 0.0;
   const double max_sun_zenith_angle =
       (use_half_precision_ ? 102.0 : 120.0) / 180.0 * kPi;
+
+  constexpr int kNumLayers = 100;
+  const auto AltitudeKm=[](int k) {
+    constexpr double M = (1.0 - exp(-(kTopRadius - kBottomRadius) / kRayleighScaleHeight)) / kNumLayers;
+    return k == kNumLayers ? 0.0
+                           : (-kRayleighScaleHeight * log(1.0 - (kNumLayers - k) * M))/1e3;
+  };
 
   DensityProfileLayer
       rayleigh_layer(0.0, 1.0, -1.0 / kRayleighScaleHeight, 0.0, 0.0);
@@ -257,6 +267,22 @@ void Demo::InitModel() {
   std::vector<double> mie_extinction;
   std::vector<double> absorption_extinction;
   std::vector<double> ground_albedo;
+
+  // Atmosphere profile (altitude, pressure, temperature, density).
+  std::ofstream atmosphere("output/Doc/atmosphere.txt");
+  for (int i = 0; i < kNumLayers + 1; ++i) {
+    double x = exp(-1e3*AltitudeKm(i) / kRayleighScaleHeight);
+    atmosphere << AltitudeKm(i) << " "  << 1013.0 * x << " 288 "
+        << 2.545818e19 * x << std::endl;
+  }
+
+  // Molecular scattering profile
+  std::ofstream molecular_scattering("output/Doc/molecular_scattering.txt");
+  assert(molecular_scattering);
+  for(int k=0;k<kNumLayers+1;++k)
+    molecular_scattering << AltitudeKm(k) << " ";
+  molecular_scattering << '\n';
+
   for (int l = kLambdaMin; l <= kLambdaMax; l += 10) {
     double lambda = static_cast<double>(l) * 1e-3;  // micro-meters
     double mie =
@@ -268,6 +294,15 @@ void Demo::InitModel() {
       solar_irradiance.push_back(kSolarIrradiance[(l - kLambdaMin) / 10]);
     }
     rayleigh_scattering.push_back(kRayleigh * pow(lambda, -4));
+    molecular_scattering << l << " ";
+    for(int j=0;j<kNumLayers;++j)
+    {
+      const auto dtau = rayleigh_scattering.back() * kRayleighScaleHeight * (
+                            exp(-1e3*AltitudeKm(j + 1) / kRayleighScaleHeight) -
+                            exp(-1e3*AltitudeKm(j) / kRayleighScaleHeight));
+      molecular_scattering << dtau << " ";
+    }
+    molecular_scattering << '\n';
     mie_scattering.push_back(mie * kMieSingleScatteringAlbedo);
     mie_extinction.push_back(mie);
     absorption_extinction.push_back(use_ozone_ ?
