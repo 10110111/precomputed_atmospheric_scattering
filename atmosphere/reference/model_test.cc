@@ -408,7 +408,7 @@ provide a separate method to initialize it:
         atmosphere_parameters_.ground_albedo.to(Number::Unit()),
         acos(atmosphere_parameters_.mu_s_min()),
         kLengthUnit.to(m),
-        precomputed_luminance ? 15 : 3 /* num_computed_wavelengths */,
+        precomputed_luminance ? 5 : 3 /* num_computed_wavelengths */,
         combine_textures,
         true /* half_precision */));
     model_->Init();
