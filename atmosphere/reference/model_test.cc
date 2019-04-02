@@ -1107,7 +1107,7 @@ and registers the test cases in the test framework:
 };
 
 namespace {
-
+#if 0
 ModelTest radiance1(
     "RadianceSeparateTextures",
     &ModelTest::TestRadianceSeparateTextures);
@@ -1132,9 +1132,11 @@ ModelTest luminance4(
 ModelTest luminance5(
     "LuminanceCombineTexturesSpectralAlbedoSunSet",
     &ModelTest::TestLuminanceCombineTexturesSpectralAlbedoSunSet);
+#endif
 ModelTest precomputed_luminance1(
     "PrecomputedLuminanceSeparateTexturesConstantAlbedo",
     &ModelTest::TestPrecomputedLuminanceSeparateTexturesConstantAlbedo);
+#if 0
 ModelTest precomputed_luminance2(
     "PrecomputedLuminanceCombineTexturesConstantAlbedo",
     &ModelTest::TestPrecomputedLuminanceCombineTexturesConstantAlbedo);
@@ -1147,6 +1149,7 @@ ModelTest precomputed_luminance4(
 ModelTest precomputed_luminance5(
     "PrecomputedLuminanceCombineTexturesSpectralAlbedoSunSet",
     &ModelTest::TestPrecomputedLuminanceCombineTexturesSpectralAlbedoSunSet);
+#endif
 
 }  // anonymous namespace
 
