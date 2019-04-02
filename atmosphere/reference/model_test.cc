@@ -411,7 +411,7 @@ provide a separate method to initialize it:
         precomputed_luminance ? 5 : 3 /* num_computed_wavelengths */,
         combine_textures,
         true /* half_precision */));
-    model_->Init();
+    model_->Init(1);
     glutSwapBuffers();
   }
 
@@ -423,7 +423,7 @@ a separate method to initialize it:
   void InitCpuModel() {
     reference_model_.reset(
         new reference::Model(atmosphere_parameters_, "output/"));
-    reference_model_->Init();
+    reference_model_->Init(1);
   }
 
 /*

@@ -284,7 +284,7 @@ void Demo::InitModel() {
       ozone_density, absorption_extinction, ground_albedo, max_sun_zenith_angle,
       kLengthUnitInMeters, use_luminance_ == PRECOMPUTED ? 15 : 3,
       use_combined_textures_, use_half_precision_));
-  model_->Init();
+  model_->Init(1);
 
 /*
 <p>Then, it creates and compiles the vertex and fragment shaders used to render
