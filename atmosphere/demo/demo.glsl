@@ -59,7 +59,7 @@ luminance values (see <a href="../model.h.html">model.h</a>).
 
 const float PI = 3.14159265;
 const vec3 kSphereCenter = vec3(0.0, 0.0, 1000.0) / kLengthUnitInMeters;
-const float kSphereRadius = 1000.0 / kLengthUnitInMeters;
+const float kSphereRadius = 1.0 / kLengthUnitInMeters;
 const vec3 kSphereAlbedo = vec3(0.8);
 const vec3 kGroundAlbedo = vec3(0.0, 0.0, 0.04);
 
@@ -247,9 +247,22 @@ shadow volume of the sphere, because they are needed to get the aerial
 perspective for the sphere and the planet:
 */
 
+in vec3 position;
 void main() {
   // Normalized view direction vector.
   vec3 view_direction = normalize(view_ray);
+  {
+      // Fisheye
+      float x=position.x, y=position.y; // x,y\in[-1,1]
+      float R=sqrt(x*x+y*y);
+      float theta=2*asin(R);
+      float phi=atan(y,x);
+      view_direction=vec3(
+                          cos(phi)*sin(theta),
+                          sin(phi)*sin(theta),
+                          1*cos(theta)
+                         );
+  }
   // Tangent of the angle subtended by this fragment.
   float fragment_angular_size =
       length(dFdx(view_ray) + dFdy(view_ray)) / length(view_ray);
@@ -382,6 +395,6 @@ the scene:
   radiance = mix(radiance, ground_radiance, ground_alpha);
   radiance = mix(radiance, sphere_radiance, sphere_alpha);
   color.rgb = 
-      pow(vec3(1.0) - exp(-radiance / white_point * exposure), vec3(1.0 / 2.2));
+      pow(radiance / white_point * exposure, vec3(1.0 / 2.2));
   color.a = 1.0;
 }
