@@ -32,7 +32,7 @@ INCLUDE_FLAGS := \
     -I. -Iexternal -Iexternal/dimensional_types -Iexternal/glad/include \
     -Iexternal/progress_bar
 DEBUG_FLAGS := -g
-RELEASE_FLAGS := -DNDEBUG -O3 -fexpensive-optimizations
+RELEASE_FLAGS := -DNDEBUG -O3 -fexpensive-optimizations -g
 
 DIRS := atmosphere text tools
 HEADERS := $(shell find $(DIRS) -name "*.h")
