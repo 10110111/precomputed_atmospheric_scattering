@@ -78,7 +78,9 @@ const char kVertexShader[] = R"(
     uniform mat4 view_from_clip;
     layout(location = 0) in vec4 vertex;
     out vec3 view_ray;
+    out vec3 position;
     void main() {
+      position=vertex.xyz;
       view_ray =
           (model_from_view * vec4((view_from_clip * vertex).xyz, 0.0)).xyz;
       gl_Position = vertex;
