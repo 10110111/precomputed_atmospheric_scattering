@@ -68,7 +68,7 @@ a string literal via the generated file <code>demo.glsl.inc</code>):
 namespace {
 
 constexpr double kPi = 3.1415926;
-constexpr double kSunAngularRadius = 0.00935 / 2.0;
+constexpr double kSunAngularRadius = 0.009199 / 2.0; // Sun angular radius on 21.08.2017
 constexpr double kSunSolidAngle = kPi * kSunAngularRadius * kSunAngularRadius;
 constexpr double kLengthUnitInMeters = 1000.0;
 

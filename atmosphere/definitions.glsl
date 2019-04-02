@@ -140,7 +140,7 @@ meter (m), nanometer (nm), radian (rad), steradian (sr), watt (watt) and lumen
 (lm):
 */
 
-const Length m = 1.0;
+const Length m = 1e-3;
 const Wavelength nm = 1.0;
 const Angle rad = 1.0;
 const SolidAngle sr = 1.0;

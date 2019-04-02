@@ -549,6 +549,40 @@ function of its <a href="https://en.wikipedia.org/wiki/Sagitta_(geometry)"
 approximate the transmittance to the Sun with the following function:
 */
 
+#define sqr(x) (x*x)
+/*
+   R1,R2 - radii of the circles
+   d - distance between centers of the circles
+   returns area of intersection of these circles
+ */
+Number circlesIntersectionArea(Number R1, Number R2, Number d)
+{
+    if(d+min(R1,R2)<max(R1,R2)) return PI*sqr(min(R1,R2));
+    if(d>=R1+R2) return 0.;
+
+    // Return area of the lens with radii R1 and R2 and offset d
+    return sqr(R1)*acos((sqr(d)+sqr(R1)-sqr(R2))/(2*d*R1))/rad+sqr(R2)*acos((sqr(d)+sqr(R2)-sqr(R1))/(2*d*R2))/rad-
+                0.5*sqrt((-d+R1+R2)*(d+R1-R2)*(d-R1+R2)*(d+R1+R2));
+}
+
+Number solarVisibleRadiantSurfacePart(IN(AtmosphereParameters) atmosphere, Length r, Number mu_s)
+{
+      Angle Rs=atmosphere.sun_angular_radius;
+      Angle Rm=0.00945154*rad/2; // Moon angular radius on 21.08.2017
+      Number visibleRadiantSurface=PI*sqr(Rs/rad);
+      const Length earthMoonDist=366463*km;
+
+      Length R=r;
+      Length d=earthMoonDist-R;
+      Angle sunMoonAngularSeparation=atan(R*sqrt(1-sqr(mu_s))/(R+d-R*mu_s));
+      Angle dSM=sunMoonAngularSeparation;
+      if(dSM<Rs+Rm)
+      {
+          visibleRadiantSurface = PI*sqr(Rs/rad)-circlesIntersectionArea(Rm/rad,Rs/rad,dSM/rad);
+      }
+      return visibleRadiantSurface/(PI*sqr(Rs/rad));
+}
+
 DimensionlessSpectrum GetTransmittanceToSun(
     IN(AtmosphereParameters) atmosphere,
     IN(TransmittanceTexture) transmittance_texture,
@@ -557,6 +591,7 @@ DimensionlessSpectrum GetTransmittanceToSun(
   Number cos_theta_h = -sqrt(max(1.0 - sin_theta_h * sin_theta_h, 0.0));
   return GetTransmittanceToTopAtmosphereBoundary(
           atmosphere, transmittance_texture, r, mu_s) *
+      solarVisibleRadiantSurfacePart(atmosphere,r,mu_s) *
       smoothstep(-sin_theta_h * atmosphere.sun_angular_radius / rad,
                  sin_theta_h * atmosphere.sun_angular_radius / rad,
                  mu_s - cos_theta_h);
@@ -811,15 +846,8 @@ vec4 GetScatteringTextureUvwzFromRMuMuSNu(IN(AtmosphereParameters) atmosphere,
         (d - d_min) / (d_max - d_min), SCATTERING_TEXTURE_MU_SIZE / 2);
   }
 
-  Length d = DistanceToTopAtmosphereBoundary(
-      atmosphere, atmosphere.bottom_radius, mu_s);
-  Length d_min = atmosphere.top_radius - atmosphere.bottom_radius;
-  Length d_max = H;
-  Number a = (d - d_min) / (d_max - d_min);
-  Number A =
-      -2.0 * atmosphere.mu_s_min * atmosphere.bottom_radius / (d_max - d_min);
-  Number u_mu_s = GetTextureCoordFromUnitRange(
-      max(1.0 - a / A, 0.0) / (1.0 + a), SCATTERING_TEXTURE_MU_S_SIZE);
+  Number u_mu_s = GetTextureCoordFromUnitRange(0.5*mu_s+0.5,
+                                               SCATTERING_TEXTURE_MU_S_SIZE);
 
   Number u_nu = GetTextureCoordFromUnitRange((nu + 1.0) / 2.0,
                                              SCATTERING_TEXTURE_NU_SIZE);
@@ -872,14 +900,7 @@ void GetRMuMuSNuFromScatteringTextureUvwz(IN(AtmosphereParameters) atmosphere,
 
   Number x_mu_s =
       GetUnitRangeFromTextureCoord(uvwz.y, SCATTERING_TEXTURE_MU_S_SIZE);
-  Length d_min = atmosphere.top_radius - atmosphere.bottom_radius;
-  Length d_max = H;
-  Number A =
-      -2.0 * atmosphere.mu_s_min * atmosphere.bottom_radius / (d_max - d_min);
-  Number a = (A - x_mu_s * A) / (1.0 + x_mu_s * A);
-  Length d = d_min + min(a, A) * (d_max - d_min);
-  mu_s = d == 0.0 * m ? Number(1.0) :
-     ClampCosine((H * H - d * d) / (2.0 * atmosphere.bottom_radius * d));
+  mu_s = x_mu_s*2-1;
 
   nu = ClampCosine(GetUnitRangeFromTextureCoord(uvwz.x, SCATTERING_TEXTURE_NU_SIZE)
                    * 2.0 - 1.0);
@@ -1451,6 +1472,7 @@ IrradianceSpectrum ComputeDirectIrradiance(
         (mu_s + alpha_s) * (mu_s + alpha_s) / (4.0 * alpha_s));
 
   return atmosphere.solar_irradiance *
+      solarVisibleRadiantSurfacePart(atmosphere,r,mu_s) *
       GetTransmittanceToTopAtmosphereBoundary(
           atmosphere, transmittance_texture, r, mu_s) * average_cosine_factor;
 
