@@ -126,6 +126,9 @@ Length SafeSqrt(Area a) {
   return sqrt(max(a, 0.0 * m2));
 }
 
+InverseSolidAngle MiePhaseFunction(Number g, Number nu);
+InverseSolidAngle RayleighPhaseFunction(Number nu);
+
 /*
 <h3 id="transmittance">Transmittance</h3>
 
@@ -654,17 +657,45 @@ void ComputeSingleScatteringIntegrand(
     bool ray_r_mu_intersects_ground,
     OUT(DimensionlessSpectrum) rayleigh, OUT(DimensionlessSpectrum) mie) {
   Length r_d = ClampRadius(atmosphere, sqrt(d * d + 2.0 * r * mu * d + r * r));
-  Number mu_s_d = ClampCosine((r * mu_s + d * nu) / r_d);
-  DimensionlessSpectrum transmittance =
-      GetTransmittance(
-          atmosphere, transmittance_texture, r, mu, d,
-          ray_r_mu_intersects_ground) *
-      GetTransmittanceToSun(
-          atmosphere, transmittance_texture, r_d, mu_s_d);
-  rayleigh = transmittance * GetProfileDensity(
-      atmosphere.rayleigh_density, r_d - atmosphere.bottom_radius);
-  mie = transmittance * GetProfileDensity(
-      atmosphere.mie_density, r_d - atmosphere.bottom_radius);
+  DimensionlessSpectrum transmittanceToScatterer =
+      GetTransmittance(atmosphere, transmittance_texture, r, mu, d,
+                       ray_r_mu_intersects_ground);
+
+  rayleigh=DimensionlessSpectrum(0);
+  mie=DimensionlessSpectrum(0);
+
+  const int SAMPLE_COUNT = 16;
+  const Angle dphi = pi / Number(SAMPLE_COUNT);
+  const Angle dtheta = pi / Number(SAMPLE_COUNT);
+  for(int i=0;i<SAMPLE_COUNT;++i)
+  {
+    Angle theta = (Number(i) + 0.5) * dtheta;
+    Number cosTheta=cos(theta), sinTheta=sin(theta);
+    bool ray_r_theta_intersects_ground = RayIntersectsGround(atmosphere, r, cosTheta);
+
+    for(int j = 0; j < 2*SAMPLE_COUNT; ++j)
+    {
+      Angle phi = (Number(j) + 0.5) * dphi;
+      vec3 omega_i = vec3(cos(phi)*sinTheta, sin(phi)*sinTheta, cosTheta);
+      SolidAngle domega_i = (dtheta/rad) * (dphi/rad) * sinTheta * sr;
+
+      if(!ray_r_theta_intersects_ground)
+          continue;
+
+      Length distanceToGround = DistanceToBottomAtmosphereBoundary(atmosphere, r, cosTheta);
+
+      DimensionlessSpectrum transmittance = transmittanceToScatterer *
+          GetTransmittance(atmosphere, transmittance_texture, r_d, cosTheta, distanceToGround, true);
+      Number cosScatteringAngle = sinTheta*cos(phi)*SafeSqrt(1-mu*mu)+mu*cosTheta;
+
+      rayleigh += transmittance *
+                  GetProfileDensity(atmosphere.rayleigh_density, r_d - atmosphere.bottom_radius) *
+                  RayleighPhaseFunction(cosScatteringAngle);
+      mie += transmittance *
+             GetProfileDensity(atmosphere.mie_density, r_d - atmosphere.bottom_radius) *
+             MiePhaseFunction(atmosphere.mie_phase_function_g, cosScatteringAngle);
+    }
+  }
 }
 
 /*
@@ -995,8 +1026,7 @@ RadianceSpectrum GetScattering(
     IrradianceSpectrum mie = GetScattering(
         atmosphere, single_mie_scattering_texture, r, mu, mu_s, nu,
         ray_r_mu_intersects_ground);
-    return rayleigh * RayleighPhaseFunction(nu) +
-        mie * MiePhaseFunction(atmosphere.mie_phase_function_g, nu);
+    return rayleigh + mie;
   } else {
     return GetScattering(
         atmosphere, multiple_scattering_texture, r, mu, mu_s, nu,
@@ -1758,8 +1788,7 @@ RadianceSpectrum GetSkyRadiance(
     scattering = scattering * shadow_transmittance;
     single_mie_scattering = single_mie_scattering * shadow_transmittance;
   }
-  return scattering * RayleighPhaseFunction(nu) + single_mie_scattering *
-      MiePhaseFunction(atmosphere.mie_phase_function_g, nu);
+  return scattering + single_mie_scattering;
 }
 
 /*
@@ -1852,8 +1881,7 @@ RadianceSpectrum GetSkyRadianceToPoint(
   single_mie_scattering = single_mie_scattering *
       smoothstep(Number(0.0), Number(0.01), mu_s);
 
-  return scattering * RayleighPhaseFunction(nu) + single_mie_scattering *
-      MiePhaseFunction(atmosphere.mie_phase_function_g, nu);
+  return scattering + single_mie_scattering;
 }
 
 /*

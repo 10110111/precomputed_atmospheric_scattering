@@ -103,10 +103,10 @@ will be used to render the scene and the help messages:
 Demo::Demo(int viewport_width, int viewport_height) :
     use_constant_solar_spectrum_(false),
     use_ozone_(true),
-    use_combined_textures_(true),
+    use_combined_textures_(false),
     use_half_precision_(false),
     use_luminance_(PRECOMPUTED),
-    do_white_balance_(true),
+    do_white_balance_(false),
     show_help_(true),
     program_(0),
     view_distance_meters_(9000.0),
@@ -196,12 +196,21 @@ void Demo::InitModel() {
   constexpr int kLambdaMin = 360;
   constexpr int kLambdaMax = 830;
   constexpr double kSolarIrradiance[48] = {
-    1.11776, 1.14259, 1.01249, 1.14716, 1.72765, 1.73054, 1.6887, 1.61253,
-    1.91198, 2.03474, 2.02042, 2.02212, 1.93377, 1.95809, 1.91686, 1.8298,
-    1.8685, 1.8931, 1.85149, 1.8504, 1.8341, 1.8345, 1.8147, 1.78158, 1.7533,
-    1.6965, 1.68194, 1.64654, 1.6048, 1.52143, 1.55622, 1.5113, 1.474, 1.4482,
-    1.41018, 1.36775, 1.34188, 1.31429, 1.28303, 1.26758, 1.2367, 1.2082,
-    1.18737, 1.14683, 1.12362, 1.1058, 1.07124, 1.04992
+      0.208325863609736, 0.511641234467499, 0.853434575639352,
+      1.20927324957754, 1.78671606271796, 2.44062790980843,
+      3.0893345517069, 3.12382698094915, 2.73669778963924,
+      2.34956859832933, 2.51748773943308, 3.49399580923819,
+      4.47735632759162, 4.9727075705853, 4.05382785233239,
+      3.04531377738075, 2.40490847926487, 3.97315584216353,
+      5.90951198189794, 8.73148500982862, 25.5265244959672,
+      47.1432559289521, 68.6711079169065, 79.7111853912647,
+      83.5520278181543, 87.3928702450438, 83.5084074516387,
+      68.3697963126189, 53.1358110350769, 39.6367193681966,
+      31.1652785730296, 23.0124917063514, 15.6649307294639,
+      13.1487250913208, 11.4377453429683, 9.71989221423331,
+      7.89359241724078, 6.02987088261008, 4.17012317325546,
+      2.77928684647827, 1.71033036706355, 0.641373887648831,
+      0.00534478239707359, 0., 0., 0., 0., 0.
   };
   // Values from http://www.iup.uni-bremen.de/gruppen/molspec/databases/
   // referencespectra/o3spectra2011/index.html for 233K, summed and averaged in
@@ -230,7 +239,7 @@ void Demo::InitModel() {
   constexpr double kRayleighScaleHeight = 8000.0;
   constexpr double kMieScaleHeight = 1200.0;
   constexpr double kMieAngstromAlpha = 0.0;
-  constexpr double kMieAngstromBeta = 5.328e-3;
+  constexpr double kMieAngstromBeta = 0*5.328e-3;
   constexpr double kMieSingleScatteringAlbedo = 0.9;
   constexpr double kMiePhaseFunctionG = 0.76;
   constexpr double kGroundAlbedo = 0.1;
@@ -456,7 +465,7 @@ interact with the atmosphere model:
 void Demo::HandleReshapeEvent(int viewport_width, int viewport_height) {
   glViewport(0, 0, viewport_width, viewport_height);
 
-  const float kFovY = 50.0 / 180.0 * kPi;
+  const float kFovY = 90.0 / 180.0 * kPi;
   const float kTanFovY = tan(kFovY / 2.0);
   float aspect_ratio = static_cast<float>(viewport_width) / viewport_height;
 
