@@ -105,7 +105,7 @@ Demo::Demo(int viewport_width, int viewport_height) :
     use_ozone_(true),
     use_combined_textures_(false),
     use_half_precision_(false),
-    use_luminance_(PRECOMPUTED),
+    use_luminance_(APPROXIMATE/*XXX: tmp*/),
     do_white_balance_(false),
     show_help_(true),
     program_(0),
@@ -242,7 +242,7 @@ void Demo::InitModel() {
   constexpr double kMieAngstromBeta = 0*5.328e-3;
   constexpr double kMieSingleScatteringAlbedo = 0.9;
   constexpr double kMiePhaseFunctionG = 0.76;
-  constexpr double kGroundAlbedo = 0.1;
+  constexpr double kGroundAlbedo = 0.0;
   const double max_sun_zenith_angle =
       (use_half_precision_ ? 102.0 : 120.0) / 180.0 * kPi;
 
@@ -291,7 +291,7 @@ void Demo::InitModel() {
       ozone_density, absorption_extinction, ground_albedo, max_sun_zenith_angle,
       kLengthUnitInMeters, use_luminance_ == PRECOMPUTED ? 15 : 3,
       use_combined_textures_, use_half_precision_));
-  model_->Init();
+  model_->Init(2);
 
 /*
 <p>Then, it creates and compiles the vertex and fragment shaders used to render
@@ -465,7 +465,7 @@ interact with the atmosphere model:
 void Demo::HandleReshapeEvent(int viewport_width, int viewport_height) {
   glViewport(0, 0, viewport_width, viewport_height);
 
-  const float kFovY = 90.0 / 180.0 * kPi;
+  const float kFovY = 179.0 / 180.0 * kPi;
   const float kTanFovY = tan(kFovY / 2.0);
   float aspect_ratio = static_cast<float>(viewport_width) / viewport_height;
 
@@ -550,7 +550,7 @@ void Demo::HandleMouseDragEvent(int mouse_x, int mouse_y) {
     sun_zenith_angle_radians_ -= (previous_mouse_y_ - mouse_y) / kScale;
     sun_zenith_angle_radians_ =
         std::max(0.0, std::min(kPi, sun_zenith_angle_radians_));
-    sun_azimuth_angle_radians_ += (previous_mouse_x_ - mouse_x) / kScale;
+//    sun_azimuth_angle_radians_ += (previous_mouse_x_ - mouse_x) / kScale;
   } else {
     view_zenith_angle_radians_ += (previous_mouse_y_ - mouse_y) / kScale;
     view_zenith_angle_radians_ =

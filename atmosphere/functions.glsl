@@ -653,7 +653,7 @@ on for efficiency reasons):
 void ComputeSingleScatteringIntegrand(
     IN(AtmosphereParameters) atmosphere,
     IN(TransmittanceTexture) transmittance_texture,
-    Length r, Number mu, Number mu_s, Number nu, Length d,
+    Length r, Number mu, Number mu_s_unused, Number nu_unused, Length d,
     bool ray_r_mu_intersects_ground,
     OUT(DimensionlessSpectrum) rayleigh, OUT(DimensionlessSpectrum) mie) {
   Length r_d = ClampRadius(atmosphere, sqrt(d * d + 2.0 * r * mu * d + r * r));
