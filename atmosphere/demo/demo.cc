@@ -116,7 +116,7 @@ Demo::Demo(int viewport_width, int viewport_height) :
     view_azimuth_angle_radians_(-0.1),
     sun_zenith_angle_radians_(1.3),
     sun_azimuth_angle_radians_(2.9),
-    exposure_(10.0) {
+    exposure_(2e-4) {
   glutInitWindowSize(viewport_width, viewport_height);
   window_id_ = glutCreateWindow("Atmosphere Demo");
   INSTANCES[window_id_] = this;
@@ -467,7 +467,7 @@ interact with the atmosphere model:
 void Demo::HandleReshapeEvent(int viewport_width, int viewport_height) {
   glViewport(0, 0, viewport_width, viewport_height);
 
-  const float kFovY = 179.0 / 180.0 * kPi;
+  const float kFovY = 50.0 / 180.0 * kPi;
   const float kTanFovY = tan(kFovY / 2.0);
   float aspect_ratio = static_cast<float>(viewport_width) / viewport_height;
 
