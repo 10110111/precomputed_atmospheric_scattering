@@ -696,9 +696,6 @@ void ComputeSingleScatteringIntegrand(
              MiePhaseFunction(atmosphere.mie_phase_function_g, cosScatteringAngle);
     }
   }
-  DimensionlessSpectrum groundRadiance=atmosphere.solar_irradiance;
-  rayleigh *= groundRadiance;
-  mie *= groundRadiance;
 }
 
 /*
