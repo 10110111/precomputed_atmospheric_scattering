@@ -686,14 +686,14 @@ void ComputeSingleScatteringIntegrand(
 
       DimensionlessSpectrum transmittance = transmittanceToScatterer *
           GetTransmittance(atmosphere, transmittance_texture, r_d, cosTheta, distanceToGround, true);
-      Number cosScatteringAngle = sinTheta*cos(phi)*SafeSqrt(1-mu*mu)+mu*cosTheta;
+      Number cosScatteringAngle = sinTheta*cos(phi)*sqrt(max(1-mu*mu,0))+mu*cosTheta;
 
       rayleigh += transmittance *
                   GetProfileDensity(atmosphere.rayleigh_density, r_d - atmosphere.bottom_radius) *
-                  RayleighPhaseFunction(cosScatteringAngle);
+                  RayleighPhaseFunction(cosScatteringAngle)*sr;
       mie += transmittance *
              GetProfileDensity(atmosphere.mie_density, r_d - atmosphere.bottom_radius) *
-             MiePhaseFunction(atmosphere.mie_phase_function_g, cosScatteringAngle);
+             MiePhaseFunction(atmosphere.mie_phase_function_g, cosScatteringAngle)*sr;
     }
   }
 }
@@ -946,8 +946,8 @@ void GetRMuMuSNuFromScatteringTextureFragCoord(
   GetRMuMuSNuFromScatteringTextureUvwz(
       atmosphere, uvwz, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
   // Clamp nu to its valid range of values, given mu and mu_s.
-  nu = clamp(nu, mu * mu_s - sqrt((1.0 - mu * mu) * (1.0 - mu_s * mu_s)),
-      mu * mu_s + sqrt((1.0 - mu * mu) * (1.0 - mu_s * mu_s)));
+/*  nu = clamp(nu, mu * mu_s - sqrt((1.0 - mu * mu) * (1.0 - mu_s * mu_s)),
+      mu * mu_s + sqrt((1.0 - mu * mu) * (1.0 - mu_s * mu_s)));*/
 }
 
 /*
@@ -987,7 +987,6 @@ AbstractSpectrum GetScattering(
         scattering_texture,
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground) {
-mu_s=nu=0;
   vec4 uvwz = GetScatteringTextureUvwzFromRMuMuSNu(
       atmosphere, r, mu, mu_s, nu, ray_r_mu_intersects_ground);
   Number tex_coord_w = uvwz.w * Number(SCATTERING_TEXTURE_R_SIZE - 1);
@@ -1018,7 +1017,6 @@ RadianceSpectrum GetScattering(
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground,
     int scattering_order) {
-mu_s=nu=0;
   if (scattering_order == 1) {
     IrradianceSpectrum rayleigh = GetScattering(
         atmosphere, single_rayleigh_scattering_texture, r, mu, mu_s, nu,
@@ -1026,7 +1024,7 @@ mu_s=nu=0;
     IrradianceSpectrum mie = GetScattering(
         atmosphere, single_mie_scattering_texture, r, mu, mu_s, nu,
         ray_r_mu_intersects_ground);
-    return rayleigh + mie;
+    return (rayleigh + mie)*(1/sr);
   } else {
     return GetScattering(
         atmosphere, multiple_scattering_texture, r, mu, mu_s, nu,
@@ -1194,7 +1192,6 @@ RadianceDensitySpectrum ComputeScatteringDensity(
     IN(ScatteringTexture) multiple_scattering_texture,
     IN(IrradianceTexture) irradiance_texture,
     Length r, Number mu, Number mu_s, Number nu, int scattering_order) {
-mu_s=nu=0;
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   assert(mu >= -1.0 && mu <= 1.0);
   assert(mu_s >= -1.0 && mu_s <= 1.0);
@@ -1315,7 +1312,6 @@ RadianceSpectrum ComputeMultipleScattering(
     IN(ScatteringDensityTexture) scattering_density_texture,
     Length r, Number mu, Number mu_s, Number nu,
     bool ray_r_mu_intersects_ground) {
-mu_s=nu=0;
   assert(r >= atmosphere.bottom_radius && r <= atmosphere.top_radius);
   assert(mu >= -1.0 && mu <= 1.0);
   assert(mu_s >= -1.0 && mu_s <= 1.0);
@@ -1482,9 +1478,7 @@ IrradianceSpectrum ComputeDirectIrradiance(
     mu_s < -alpha_s ? 0.0 : (mu_s > alpha_s ? mu_s :
         (mu_s + alpha_s) * (mu_s + alpha_s) / (4.0 * alpha_s));
 
-  return 0* atmosphere.solar_irradiance *
-      GetTransmittanceToTopAtmosphereBoundary(
-          atmosphere, transmittance_texture, r, mu_s) * average_cosine_factor;
+  return IrradianceSpectrum(0*watt_per_square_meter_per_nm);
 
 }
 
@@ -1535,7 +1529,7 @@ IrradianceSpectrum ComputeIndirectIrradiance(
               omega.z * domega;
     }
   }
-  return 0*result;
+  return IrradianceSpectrum(0*watt_per_square_meter_per_nm);
 }
 
 /*
@@ -1591,7 +1585,7 @@ IrradianceSpectrum ComputeDirectIrradianceTexture(
   Number mu_s;
   GetRMuSFromIrradianceTextureUv(
       atmosphere, frag_coord / IRRADIANCE_TEXTURE_SIZE, r, mu_s);
-  return 0*ComputeDirectIrradiance(atmosphere, transmittance_texture, r, mu_s);
+  return IrradianceSpectrum(0*watt_per_square_meter_per_nm);
 }
 
 /*
@@ -1608,9 +1602,7 @@ IrradianceSpectrum ComputeIndirectIrradianceTexture(
   Number mu_s;
   GetRMuSFromIrradianceTextureUv(
       atmosphere, frag_coord / IRRADIANCE_TEXTURE_SIZE, r, mu_s);
-  return 0*ComputeIndirectIrradiance(atmosphere,
-      single_rayleigh_scattering_texture, single_mie_scattering_texture,
-      multiple_scattering_texture, r, mu_s, scattering_order);
+  return IrradianceSpectrum(0*watt_per_square_meter_per_nm);
 }
 
 /*
@@ -1625,7 +1617,7 @@ IrradianceSpectrum GetIrradiance(
     IN(IrradianceTexture) irradiance_texture,
     Length r, Number mu_s) {
   vec2 uv = GetIrradianceTextureUvFromRMuS(atmosphere, r, mu_s);
-  return 0*IrradianceSpectrum(texture(irradiance_texture, uv));
+  return IrradianceSpectrum(0*watt_per_square_meter_per_nm);
 }
 
 /*
@@ -1767,7 +1759,7 @@ RadianceSpectrum GetSkyRadiance(
   scattering = GetCombinedScattering(atmosphere, scattering_texture, single_mie_scattering_texture,
                                      r, mu, mu_s, nu, ray_r_mu_intersects_ground,
                                      single_mie_scattering);
-  return scattering + single_mie_scattering;
+  return (scattering + single_mie_scattering)*(1/sr)*1e-4;
 }
 
 /*
@@ -1860,7 +1852,7 @@ RadianceSpectrum GetSkyRadianceToPoint(
   single_mie_scattering = single_mie_scattering *
       smoothstep(Number(0.0), Number(0.01), mu_s);
 
-  return 0*(scattering + single_mie_scattering);
+  return RadianceSpectrum(0*watt_per_square_meter_per_sr_per_nm);
 }
 
 /*
@@ -1890,8 +1882,5 @@ IrradianceSpectrum GetSunAndSkyIrradiance(
       (1.0 + dot(normal, point) / r) * 0.5;
 
   // Direct irradiance.
-  return 0*atmosphere.solar_irradiance *
-      GetTransmittanceToSun(
-          atmosphere, transmittance_texture, r, mu_s) *
-      max(dot(normal, sun_direction), 0.0);
+  return IrradianceSpectrum(0*watt_per_square_meter_per_nm);
 }
