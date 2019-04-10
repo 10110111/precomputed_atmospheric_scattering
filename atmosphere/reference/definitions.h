@@ -109,7 +109,7 @@ wavelengths, uniformly distributed between 360 and 830 nanometers:
 
 template<int U1, int U2, int U3, int U4, int U5>
 using WavelengthFunction = dimensional::ScalarFunction<
-    0, 1, 0, 0, 0, U1, U2, U3, U4, U5, 47, 360, 830>;
+    0, 1, 0, 0, 0, U1, U2, U3, U4, U5, 3, 360, 830>;
 
 // A function from Wavelength to Number.
 typedef WavelengthFunction<0, 0, 0, 0, 0> DimensionlessSpectrum;
