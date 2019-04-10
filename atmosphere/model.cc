@@ -203,7 +203,7 @@ const char kComputeMultipleScatteringShader[] = R"(
           vec3(gl_FragCoord.xy, layer + 0.5), nu);
       scattering = vec4(
           luminance_from_radiance *
-              delta_multiple_scattering.rgb / RayleighPhaseFunction(nu),
+              delta_multiple_scattering.rgb ,
           0.0);
     })";
 
