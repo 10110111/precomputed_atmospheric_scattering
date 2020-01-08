@@ -48,6 +48,7 @@ of the following C++ code.
 #include <cassert>
 #include <cmath>
 #include <iostream>
+#include <fstream>
 #include <memory>
 
 #include "atmosphere/constants.h"
@@ -165,12 +166,16 @@ const char kComputeScatteringDensityShader[] = R"(
     uniform sampler2D irradiance_texture;
     uniform int scattering_order;
     uniform int layer;
+    bool debugDataPresent();
+    vec3 debugData();
     void main() {
       scattering_density = ComputeScatteringDensityTexture(
           ATMOSPHERE, transmittance_texture, single_rayleigh_scattering_texture,
           single_mie_scattering_texture, multiple_scattering_texture,
           irradiance_texture, vec3(gl_FragCoord.xy, layer + 0.5),
           scattering_order);
+      if(debugDataPresent())
+          scattering_density=debugData();
     })";
 
 const char kComputeIndirectIrradianceShader[] = R"(
@@ -203,7 +208,7 @@ const char kComputeMultipleScatteringShader[] = R"(
           vec3(gl_FragCoord.xy, layer + 0.5), nu);
       scattering = vec4(
           luminance_from_radiance *
-              delta_multiple_scattering.rgb / RayleighPhaseFunction(nu),
+              delta_multiple_scattering.rgb, // 10110111: removed division by RayleighPhaseFunction for comparison with my code
           0.0);
     })";
 
@@ -563,6 +568,9 @@ void ComputeSpectralRadianceToLuminanceFactors(
     const std::vector<double>& wavelengths,
     const std::vector<double>& solar_irradiance,
     double lambda_power, double* k_r, double* k_g, double* k_b) {
+
+    *k_r=*k_g=*k_b=1; return;
+
   *k_r = 0.0;
   *k_g = 0.0;
   *k_b = 0.0;
@@ -592,6 +600,7 @@ void ComputeSpectralRadianceToLuminanceFactors(
   *k_r *= MAX_LUMINOUS_EFFICACY * dlambda;
   *k_g *= MAX_LUMINOUS_EFFICACY * dlambda;
   *k_b *= MAX_LUMINOUS_EFFICACY * dlambda;
+  std::cerr << "ks: " << *k_r << ", " << *k_g << ", " << *k_b << "\n";
 }
 
 }  // anonymous namespace
@@ -1112,6 +1121,24 @@ void Model::Precompute(
   DrawQuad({false, blend}, full_screen_quad_vao_);
   glFinish();
   std::cerr << "done\n";
+  {
+      std::cerr << " Saving direct irradiance texture...";
+      glActiveTexture(GL_TEXTURE0);
+      if(glGetError()!=GL_NO_ERROR) std::cerr << "glActiveTexture FAILED!\n";
+      glBindTexture(GL_TEXTURE_2D, delta_irradiance_texture);
+      if(glGetError()!=GL_NO_ERROR) std::cerr << "glBindTexture FAILED!\n";
+      std::vector<float> pixels(IRRADIANCE_TEXTURE_WIDTH*IRRADIANCE_TEXTURE_HEIGHT*4);
+      glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+      if(glGetError()!=GL_NO_ERROR) std::cerr << "glGetTexImage FAILED!\n";
+      std::ofstream out("output/Doc/delta-irradiance-order0.dat");
+      out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+      const std::int32_t header[]={IRRADIANCE_TEXTURE_WIDTH,IRRADIANCE_TEXTURE_HEIGHT, 2};
+      out.write(reinterpret_cast<const char*>(header), sizeof header);
+      if(out)
+          std::cerr << " done\n";
+      else
+          std::cerr << " FAILED!\n";
+  }
 
   // Compute the rayleigh and mie single scattering, store them in
   // delta_rayleigh_scattering_texture and delta_mie_scattering_texture, and
@@ -1184,6 +1211,27 @@ void Model::Precompute(
       if(layer+1<SCATTERING_TEXTURE_DEPTH) std::cerr << ",";
     }
     std::cerr << "\n";
+    {
+        std::cerr << "   Saving scattering density texture...";
+        glActiveTexture(GL_TEXTURE0);
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glActiveTexture FAILED!\n";
+        glBindTexture(GL_TEXTURE_3D, delta_scattering_density_texture);
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glBindTexture FAILED!\n";
+        std::vector<float> pixels(SCATTERING_TEXTURE_MU_S_SIZE*SCATTERING_TEXTURE_MU_SIZE*
+                                  SCATTERING_TEXTURE_NU_SIZE*SCATTERING_TEXTURE_R_SIZE*4);
+        glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glGetTexImage FAILED!\n";
+        std::ofstream out("output/Doc/delta-scattering-density-order"+std::to_string(scattering_order)+".dat");
+        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+        const std::int32_t header[]={SCATTERING_TEXTURE_MU_S_SIZE, SCATTERING_TEXTURE_MU_SIZE,
+                                     SCATTERING_TEXTURE_NU_SIZE, SCATTERING_TEXTURE_R_SIZE,
+                                     4};
+        out.write(reinterpret_cast<const char*>(header), sizeof header);
+        if(out)
+            std::cerr << " done\n";
+        else
+            std::cerr << " FAILED!\n";
+    }
 
     std::cerr << "   Computing indirect irradiance... ";
     // Compute the indirect irradiance, store it in delta_irradiance_texture and
@@ -1210,6 +1258,24 @@ void Model::Precompute(
     glFinish();
     DrawQuad({false, true}, full_screen_quad_vao_);
     std::cerr << "done\n";
+    {
+        std::cerr << "   Saving indirect irradiance texture...";
+        glActiveTexture(GL_TEXTURE0);
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glActiveTexture FAILED!\n";
+        glBindTexture(GL_TEXTURE_2D, delta_irradiance_texture);
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glBindTexture FAILED!\n";
+        std::vector<float> pixels(IRRADIANCE_TEXTURE_WIDTH*IRRADIANCE_TEXTURE_HEIGHT*4);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glGetTexImage FAILED!\n";
+        std::ofstream out("output/Doc/delta-irradiance-order"+std::to_string(scattering_order-1)+".dat");
+        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+        const std::int32_t header[]={IRRADIANCE_TEXTURE_WIDTH,IRRADIANCE_TEXTURE_HEIGHT, 2};
+        out.write(reinterpret_cast<const char*>(header), sizeof header);
+        if(out)
+            std::cerr << " done\n";
+        else
+            std::cerr << " FAILED!\n";
+    }
 
     // Compute the multiple scattering, store it in
     // delta_multiple_scattering_texture, and accumulate it in
@@ -1236,6 +1302,27 @@ void Model::Precompute(
       if(layer+1<SCATTERING_TEXTURE_DEPTH) std::cerr << ",";
     }
     std::cerr << "\n";
+    {
+        std::cerr << "   Saving multiple scattering texture...";
+        glActiveTexture(GL_TEXTURE0);
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glActiveTexture FAILED!\n";
+        glBindTexture(GL_TEXTURE_3D, delta_multiple_scattering_texture);
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glBindTexture FAILED!\n";
+        std::vector<float> pixels(SCATTERING_TEXTURE_MU_S_SIZE*SCATTERING_TEXTURE_MU_SIZE*
+                                  SCATTERING_TEXTURE_NU_SIZE*SCATTERING_TEXTURE_R_SIZE*4);
+        glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
+        if(glGetError()!=GL_NO_ERROR) std::cerr << "glGetTexImage FAILED!\n";
+        std::ofstream out("output/Doc/delta-multiple-scattering-order"+std::to_string(scattering_order)+".dat");
+        out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
+        const std::int32_t header[]={SCATTERING_TEXTURE_MU_S_SIZE, SCATTERING_TEXTURE_MU_SIZE,
+                                     SCATTERING_TEXTURE_NU_SIZE, SCATTERING_TEXTURE_R_SIZE,
+                                     4};
+        out.write(reinterpret_cast<const char*>(header), sizeof header);
+        if(out)
+            std::cerr << " done\n";
+        else
+            std::cerr << " FAILED!\n";
+    }
   }
   std::cerr << "Model::Precompute() done\n";
   glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, 0, 0);

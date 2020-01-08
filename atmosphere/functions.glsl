@@ -1,3 +1,19 @@
+bool dbgDataPresent=false;
+bool debugDataPresent()
+{
+    return dbgDataPresent;
+}
+vec3 dbgData;
+vec3 debugData()
+{
+    return dbgData;
+}
+void setDebugData(float a, float b, float c)
+{
+    dbgDataPresent=true;
+    dbgData=vec3(a,b,c);
+}
+
 /**
  * Copyright (c) 2017 Eric Bruneton
  * All rights reserved.
