@@ -1297,7 +1297,7 @@ void Model::Precompute(
     for (unsigned int layer = 0; layer < SCATTERING_TEXTURE_DEPTH; ++layer) {
       std::cerr << layer;
       compute_multiple_scattering.BindInt("layer", layer);
-      DrawQuad({false, true}, full_screen_quad_vao_);
+      DrawQuad({false, scattering_order>2}, full_screen_quad_vao_);
       glFinish();
       if(layer+1<SCATTERING_TEXTURE_DEPTH) std::cerr << ",";
     }
