@@ -105,7 +105,7 @@ Demo::Demo(int viewport_width, int viewport_height) :
     use_ozone_(true),
     use_combined_textures_(true),
     use_half_precision_(false),
-    use_luminance_(NONE),
+    use_luminance_(PRECOMPUTED),
     do_white_balance_(true),
     show_help_(true),
     program_(0),
@@ -280,7 +280,7 @@ void Demo::InitModel() {
       kBottomRadius, kTopRadius, {rayleigh_layer}, rayleigh_scattering,
       {mie_layer}, mie_scattering, mie_extinction, kMiePhaseFunctionG,
       ozone_density, absorption_extinction, ground_albedo, max_sun_zenith_angle,
-      kLengthUnitInMeters, use_luminance_ == PRECOMPUTED ? 15 : 3,
+      kLengthUnitInMeters, use_luminance_ == PRECOMPUTED ? 12 : 3,
       use_combined_textures_, use_half_precision_));
   model_->Init();
 

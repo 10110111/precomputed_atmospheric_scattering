@@ -152,7 +152,7 @@ const char kComputeSingleScatteringShader[] = R"(
       ComputeSingleScatteringTexture(
           ATMOSPHERE, transmittance_texture, vec3(gl_FragCoord.xy, layer + 0.5),
           delta_rayleigh, delta_mie);
-      scattering = vec4(luminance_from_radiance * delta_rayleigh.rgb,
+      scattering = 0*vec4(luminance_from_radiance * delta_rayleigh.rgb,
           (luminance_from_radiance * delta_mie).r);
       single_mie_scattering = luminance_from_radiance * delta_mie;
     })";
@@ -569,8 +569,6 @@ void ComputeSpectralRadianceToLuminanceFactors(
     const std::vector<double>& solar_irradiance,
     double lambda_power, double* k_r, double* k_g, double* k_b) {
 
-    *k_r=*k_g=*k_b=1; return;
-
   *k_r = 0.0;
   *k_g = 0.0;
   *k_b = 0.0;
@@ -600,7 +598,6 @@ void ComputeSpectralRadianceToLuminanceFactors(
   *k_r *= MAX_LUMINOUS_EFFICACY * dlambda;
   *k_g *= MAX_LUMINOUS_EFFICACY * dlambda;
   *k_b *= MAX_LUMINOUS_EFFICACY * dlambda;
-  std::cerr << "ks: " << *k_r << ", " << *k_g << ", " << *k_b << "\n";
 }
 
 }  // anonymous namespace
@@ -931,7 +928,7 @@ void Model::Init(unsigned int num_scattering_orders) {
         kLambdaMin + (3 * i + 1.5) * dlambda,
         kLambdaMin + (3 * i + 2.5) * dlambda
       };
-      auto coeff = [dlambda](double lambda, int component) {
+      auto coeff = [dlambda](double lambda, int component) -> float {
         // Note that we don't include MAX_LUMINOUS_EFFICACY here, to avoid
         // artefacts due to too large values when using half precision on GPU.
         // We add this term back in kAtmosphereShader, via
@@ -1066,6 +1063,7 @@ void Model::Precompute(
     bool blend,
     unsigned int num_scattering_orders) {
 
+  std::cerr.precision(9);
   std::cerr << "Precompute(lambdas={" << lambdas[0] << ',' << lambdas[1] << ',' << lambdas[2] << "})\n";
   // The precomputations require specific GLSL programs, for each precomputation
   // step. We create and compile them here (they are automatically destroyed
@@ -1297,7 +1295,7 @@ void Model::Precompute(
     for (unsigned int layer = 0; layer < SCATTERING_TEXTURE_DEPTH; ++layer) {
       std::cerr << layer;
       compute_multiple_scattering.BindInt("layer", layer);
-      DrawQuad({false, scattering_order>2}, full_screen_quad_vao_);
+      DrawQuad({false, true}, full_screen_quad_vao_);
       glFinish();
       if(layer+1<SCATTERING_TEXTURE_DEPTH) std::cerr << ",";
     }
@@ -1312,7 +1310,9 @@ void Model::Precompute(
                                   SCATTERING_TEXTURE_NU_SIZE*SCATTERING_TEXTURE_R_SIZE*4);
         glGetTexImage(GL_TEXTURE_3D, 0, GL_RGBA, GL_FLOAT, pixels.data());
         if(glGetError()!=GL_NO_ERROR) std::cerr << "glGetTexImage FAILED!\n";
-        std::ofstream out("output/Doc/delta-multiple-scattering-order"+std::to_string(scattering_order)+".dat");
+        static int i=-1;
+        if(scattering_order==2) ++i;
+        std::ofstream out("output/Doc/delta-multiple-scattering-order"+std::to_string(scattering_order)+"-it"+std::to_string(i)+".dat");
         out.write(reinterpret_cast<const char*>(pixels.data()), pixels.size()*sizeof pixels[0]);
         const std::int32_t header[]={SCATTERING_TEXTURE_MU_S_SIZE, SCATTERING_TEXTURE_MU_SIZE,
                                      SCATTERING_TEXTURE_NU_SIZE, SCATTERING_TEXTURE_R_SIZE,
