@@ -305,7 +305,7 @@ class Model {
 
   static constexpr double kLambdaR = 680.0;
   static constexpr double kLambdaG = 550.0;
-  static constexpr double kLambdaB = 440.0;
+  static constexpr double kLambdaB = 420.0;
 
  private:
   typedef std::array<double, 3> vec3;
